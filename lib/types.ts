@@ -1,4 +1,4 @@
-export interface OpenSeaNFT {
+export interface NFT {
   identifier: string;
   collection: string;
   contract: string;
@@ -11,9 +11,4 @@ export interface OpenSeaNFT {
   updated_at: string;
   is_disabled: boolean;
   is_nsfw: boolean;
-}
-
-export interface OpenSeaResponse {
-  nfts: OpenSeaNFT[];
-  next: string | null;
 }

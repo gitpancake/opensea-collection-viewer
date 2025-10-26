@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import type { OpenSeaNFT } from '@/lib/types';
+import type { NFT } from '@/lib/types';
 
 type ViewMode = 'small' | 'wide';
 
 export default function ArtGallery() {
-  const [nfts, setNfts] = useState<OpenSeaNFT[]>([]);
+  const [nfts, setNfts] = useState<NFT[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNFT, setSelectedNFT] = useState<OpenSeaNFT | null>(null);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('small');
   const [fullWidth, setFullWidth] = useState(true);
 
