@@ -8,7 +8,10 @@ const WALLET_ADDRESSES = [
   '0x61be94dC56bc13BEd6f4D41be76a69E74c5835f5'
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = 30; // Load 30 items at a time
   try {
     const apiKey = process.env.OPENSEA_API_KEY;
 
@@ -19,28 +22,42 @@ export async function GET() {
       );
     }
 
-    // Fetch NFTs from all wallet addresses
+    // Fetch all NFTs from each wallet with pagination
     const fetchPromises = WALLET_ADDRESSES.map(async (walletAddress) => {
-      const url = `https://api.opensea.io/api/v2/chain/${CHAIN}/account/${walletAddress}/nfts?limit=50`;
+      let allNFTsForWallet: OpenSeaNFT[] = [];
+      let nextCursor: string | null = null;
 
-      const response = await fetch(url, {
-        headers: {
-          'X-API-KEY': apiKey,
-          'Accept': 'application/json',
-        },
-        next: {
-          revalidate: 3600, // Cache for 1 hour
-        },
-      });
+      do {
+        const url = nextCursor
+          ? `https://api.opensea.io/api/v2/chain/${CHAIN}/account/${walletAddress}/nfts?limit=50&next=${nextCursor}`
+          : `https://api.opensea.io/api/v2/chain/${CHAIN}/account/${walletAddress}/nfts?limit=50`;
 
-      if (!response.ok) {
-        throw new Error(`OpenSea API error: ${response.status} ${response.statusText}`);
-      }
+        const response = await fetch(url, {
+          headers: {
+            'X-API-KEY': apiKey,
+            'Accept': 'application/json',
+          },
+          next: {
+            revalidate: 3600, // Cache for 1 hour
+          },
+        });
 
-      const data: OpenSeaResponse = await response.json();
+        if (!response.ok) {
+          throw new Error(`OpenSea API error: ${response.status} ${response.statusText}`);
+        }
 
-      // Filter by contract address to ensure we only get NFTs from the Abraham First Works collection
-      return data.nfts.filter(nft => nft.contract.toLowerCase() === CONTRACT_ADDRESS.toLowerCase());
+        const data: OpenSeaResponse = await response.json();
+
+        // Filter by contract address to ensure we only get NFTs from the Abraham First Works collection
+        const filteredNFTs = data.nfts.filter(
+          nft => nft.contract.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
+        );
+
+        allNFTsForWallet = [...allNFTsForWallet, ...filteredNFTs];
+        nextCursor = data.next;
+      } while (nextCursor);
+
+      return allNFTsForWallet;
     });
 
     const results = await Promise.all(fetchPromises);
@@ -74,7 +91,7 @@ export async function GET() {
     );
 
     // Filter out any disabled or NSFW content and return sorted by identifier (token ID)
-    const filteredNFTs = uniqueNFTs
+    const allFilteredNFTs = uniqueNFTs
       .filter(nft => !nft.is_disabled && !nft.is_nsfw)
       .sort((a, b) => {
         const aId = parseInt(a.identifier);
@@ -82,7 +99,18 @@ export async function GET() {
         return aId - bId;
       });
 
-    return NextResponse.json({ nfts: filteredNFTs });
+    // Paginate results
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedNFTs = allFilteredNFTs.slice(startIndex, endIndex);
+    const hasMore = endIndex < allFilteredNFTs.length;
+
+    return NextResponse.json({
+      nfts: paginatedNFTs,
+      hasMore,
+      total: allFilteredNFTs.length,
+      page
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch NFTs' },
