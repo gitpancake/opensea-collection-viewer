@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { OpenSeaNFT } from '@/lib/types';
 
@@ -9,48 +9,29 @@ type ViewMode = 'small' | 'wide';
 export default function ArtGallery() {
   const [nfts, setNfts] = useState<OpenSeaNFT[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<OpenSeaNFT | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('small');
   const [fullWidth, setFullWidth] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  const fetchNFTs = useCallback(async (pageNum: number) => {
-    try {
-      if (pageNum === 1) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const response = await fetch(`/api/nfts?page=${pageNum}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch NFTs');
-      }
-      const data = await response.json();
-
-      if (pageNum === 1) {
-        setNfts(data.nfts);
-      } else {
-        setNfts(prev => [...prev, ...data.nfts]);
-      }
-
-      setHasMore(data.hasMore);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchNFTs(1);
-  }, [fetchNFTs]);
+    async function fetchNFTs() {
+      try {
+        const response = await fetch('/api/nfts');
+        if (!response.ok) {
+          throw new Error('Failed to fetch NFTs');
+        }
+        const data = await response.json();
+        setNfts(data.nfts);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchNFTs();
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -62,33 +43,6 @@ export default function ArtGallery() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [selectedNFT]);
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    if (!hasMore || loadingMore || !loadMoreRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          setPage(prev => prev + 1);
-        }
-      },
-      { threshold: 0.1, rootMargin: '200px' }
-    );
-
-    observer.observe(loadMoreRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [hasMore, loadingMore]);
-
-  // Fetch when page changes
-  useEffect(() => {
-    if (page > 1) {
-      fetchNFTs(page);
-    }
-  }, [page, fetchNFTs]);
 
   const getGridClass = () => {
     switch (viewMode) {
@@ -196,21 +150,6 @@ export default function ArtGallery() {
               </div>
             ))}
           </div>
-
-          {/* Loading indicator and intersection observer target */}
-          {hasMore && (
-            <div ref={loadMoreRef} className="py-8 text-center">
-              {loadingMore && (
-                <div className="text-white text-sm">Loading more...</div>
-              )}
-            </div>
-          )}
-
-          {!hasMore && nfts.length > 0 && (
-            <div className="py-8 text-center text-zinc-500 text-sm">
-              All pieces loaded
-            </div>
-          )}
         </div>
       </div>
 

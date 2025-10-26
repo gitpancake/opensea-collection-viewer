@@ -8,10 +8,7 @@ const WALLET_ADDRESSES = [
   '0x61be94dC56bc13BEd6f4D41be76a69E74c5835f5'
 ];
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = 30; // Load 30 items at a time
+export async function GET() {
   try {
     const apiKey = process.env.OPENSEA_API_KEY;
 
@@ -91,7 +88,7 @@ export async function GET(request: Request) {
     );
 
     // Filter out any disabled or NSFW content and return sorted by identifier (token ID)
-    const allFilteredNFTs = uniqueNFTs
+    const filteredNFTs = uniqueNFTs
       .filter(nft => !nft.is_disabled && !nft.is_nsfw)
       .sort((a, b) => {
         const aId = parseInt(a.identifier);
@@ -99,18 +96,7 @@ export async function GET(request: Request) {
         return aId - bId;
       });
 
-    // Paginate results
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedNFTs = allFilteredNFTs.slice(startIndex, endIndex);
-    const hasMore = endIndex < allFilteredNFTs.length;
-
-    return NextResponse.json({
-      nfts: paginatedNFTs,
-      hasMore,
-      total: allFilteredNFTs.length,
-      page
-    });
+    return NextResponse.json({ nfts: filteredNFTs });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch NFTs' },
