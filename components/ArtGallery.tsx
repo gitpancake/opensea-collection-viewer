@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import type { OpenSeaNFT } from '@/lib/types';
 
@@ -19,7 +19,7 @@ export default function ArtGallery() {
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchNFTs = async (pageNum: number) => {
+  const fetchNFTs = useCallback(async (pageNum: number) => {
     try {
       if (pageNum === 1) {
         setLoading(true);
@@ -46,11 +46,11 @@ export default function ArtGallery() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNFTs(1);
-  }, []);
+  }, [fetchNFTs]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -65,28 +65,30 @@ export default function ArtGallery() {
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
+    if (!hasMore || loadingMore || !loadMoreRef.current) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          fetchNFTs(nextPage);
+          setPage(prev => prev + 1);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    observer.observe(loadMoreRef.current);
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      observer.disconnect();
     };
-  }, [hasMore, loadingMore, page]);
+  }, [hasMore, loadingMore]);
+
+  // Fetch when page changes
+  useEffect(() => {
+    if (page > 1) {
+      fetchNFTs(page);
+    }
+  }, [page, fetchNFTs]);
 
   const getGridClass = () => {
     switch (viewMode) {
