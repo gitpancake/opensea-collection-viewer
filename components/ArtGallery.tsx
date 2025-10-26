@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { OpenSeaNFT } from '@/lib/types';
 
-type ViewMode = 'small' | 'wide' | 'super-wide';
+type ViewMode = 'small' | 'wide';
 
 export default function ArtGallery() {
   const [nfts, setNfts] = useState<OpenSeaNFT[]>([]);
@@ -50,8 +50,6 @@ export default function ArtGallery() {
         return 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6';
       case 'wide':
         return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
-      case 'super-wide':
-        return 'grid-cols-1 lg:grid-cols-2';
       default:
         return 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6';
     }
@@ -109,18 +107,6 @@ export default function ArtGallery() {
                   <rect x="13" y="13" width="8" height="8" />
                 </svg>
               </button>
-              <button
-                onClick={() => setViewMode('super-wide')}
-                className={`p-2 rounded-full transition-colors ${
-                  viewMode === 'super-wide' ? 'bg-white text-black' : 'text-white hover:bg-zinc-800'
-                }`}
-                aria-label="Super wide view (2 per row)"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="8" height="18" />
-                  <rect x="13" y="3" width="8" height="18" />
-                </svg>
-              </button>
             </div>
 
             {/* Full Width Toggle */}
@@ -156,13 +142,10 @@ export default function ArtGallery() {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
-                <div className="mt-4 space-y-1">
+                <div className="mt-4">
                   <h3 className="text-sm font-light tracking-wide text-white">
                     {nft.name}
                   </h3>
-                  <p className="text-xs text-zinc-500">
-                    {nft.collection}
-                  </p>
                 </div>
               </div>
             ))}
@@ -186,13 +169,10 @@ export default function ArtGallery() {
                 priority
               />
             </div>
-            <div className="mt-6 space-y-2 text-center">
+            <div className="mt-6 text-center">
               <h2 className="text-xl font-light tracking-wide text-white">
                 {selectedNFT.name}
               </h2>
-              <p className="text-sm text-zinc-400">
-                {selectedNFT.collection}
-              </p>
             </div>
           </div>
         </div>
