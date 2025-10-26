@@ -45,15 +45,11 @@ export async function GET() {
 
         const data: OpenSeaResponse = await response.json();
 
-        // Filter by contract address to ensure we only get NFTs from the Abraham First Works collection
-        const filteredNFTs = data.nfts.filter(
-          nft => nft.contract.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
-        );
-
-        allNFTsForWallet = [...allNFTsForWallet, ...filteredNFTs];
+        // Add all NFTs from this wallet
+        allNFTsForWallet = [...allNFTsForWallet, ...data.nfts];
         nextCursor = data.next;
 
-        console.log(`Wallet ${walletAddress} - Page ${pageCount}: Got ${data.nfts.length} NFTs (${filteredNFTs.length} from collection), Total so far: ${allNFTsForWallet.length}, Has more: ${!!nextCursor}`);
+        console.log(`Wallet ${walletAddress} - Page ${pageCount}: Got ${data.nfts.length} NFTs, Total so far: ${allNFTsForWallet.length}, Has more: ${!!nextCursor}`);
       } while (nextCursor);
 
       console.log(`Wallet ${walletAddress} - Final total: ${allNFTsForWallet.length} NFTs from collection`);
@@ -103,9 +99,13 @@ export async function GET() {
       new Map(allNFTs.map(nft => [nft.identifier, nft])).values()
     );
 
-    // Filter out any disabled or NSFW content and return sorted by identifier (token ID)
+    // Filter to only Abraham First Works collection, exclude disabled/NSFW, and sort by token ID
     const filteredNFTs = uniqueNFTs
-      .filter(nft => !nft.is_disabled && !nft.is_nsfw)
+      .filter(nft =>
+        nft.contract.toLowerCase() === CONTRACT_ADDRESS.toLowerCase() &&
+        !nft.is_disabled &&
+        !nft.is_nsfw
+      )
       .sort((a, b) => {
         const aId = parseInt(a.identifier);
         const bId = parseInt(b.identifier);
