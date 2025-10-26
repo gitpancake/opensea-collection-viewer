@@ -144,7 +144,7 @@ export default function ArtGallery() {
                 </div>
                 <div className="mt-4">
                   <h3 className="text-sm font-light tracking-wide text-white">
-                    {nft.name}
+                    #{nft.identifier} {nft.name}
                   </h3>
                 </div>
               </div>
@@ -171,7 +171,7 @@ export default function ArtGallery() {
             </div>
             <div className="mt-6 text-center">
               <h2 className="text-xl font-light tracking-wide text-white">
-                {selectedNFT.name}
+                #{selectedNFT.identifier} {selectedNFT.name}
               </h2>
             </div>
           </div>
