@@ -67,22 +67,35 @@ export async function GET() {
 
     // If no NFTs found in wallets, fallback to fetching from contract
     if (allNFTs.length === 0) {
-      const contractUrl = `https://api.opensea.io/api/v2/chain/${CHAIN}/contract/${CONTRACT_ADDRESS}/nfts?limit=50`;
+      console.log('No NFTs in wallets, fetching from contract...');
+      let nextCursor: string | null = null;
+      let pageCount = 0;
 
-      const contractResponse = await fetch(contractUrl, {
-        headers: {
-          'X-API-KEY': apiKey,
-          'Accept': 'application/json',
-        },
-        next: {
-          revalidate: 3600,
-        },
-      });
+      do {
+        pageCount++;
+        const contractUrl = nextCursor
+          ? `https://api.opensea.io/api/v2/chain/${CHAIN}/contract/${CONTRACT_ADDRESS}/nfts?limit=50&next=${nextCursor}`
+          : `https://api.opensea.io/api/v2/chain/${CHAIN}/contract/${CONTRACT_ADDRESS}/nfts?limit=50`;
 
-      if (contractResponse.ok) {
-        const contractData: OpenSeaResponse = await contractResponse.json();
-        allNFTs = contractData.nfts;
-      }
+        const contractResponse = await fetch(contractUrl, {
+          headers: {
+            'X-API-KEY': apiKey,
+            'Accept': 'application/json',
+          },
+          cache: 'no-store',
+        });
+
+        if (contractResponse.ok) {
+          const contractData: OpenSeaResponse = await contractResponse.json();
+          allNFTs = [...allNFTs, ...contractData.nfts];
+          nextCursor = contractData.next;
+          console.log(`Contract - Page ${pageCount}: Got ${contractData.nfts.length} NFTs, Total so far: ${allNFTs.length}, Has more: ${!!nextCursor}`);
+        } else {
+          break;
+        }
+      } while (nextCursor);
+
+      console.log(`Contract - Final total: ${allNFTs.length} NFTs`);
     }
 
     // Remove duplicates by identifier (in case same NFT appears in multiple wallets somehow)
