@@ -23,8 +23,10 @@ export async function GET() {
     const fetchPromises = WALLET_ADDRESSES.map(async (walletAddress) => {
       let allNFTsForWallet: OpenSeaNFT[] = [];
       let nextCursor: string | null = null;
+      let pageCount = 0;
 
       do {
+        pageCount++;
         const url = nextCursor
           ? `https://api.opensea.io/api/v2/chain/${CHAIN}/account/${walletAddress}/nfts?limit=50&next=${nextCursor}`
           : `https://api.opensea.io/api/v2/chain/${CHAIN}/account/${walletAddress}/nfts?limit=50`;
@@ -34,9 +36,7 @@ export async function GET() {
             'X-API-KEY': apiKey,
             'Accept': 'application/json',
           },
-          next: {
-            revalidate: 3600, // Cache for 1 hour
-          },
+          cache: 'no-store', // Disable caching to ensure we get fresh data
         });
 
         if (!response.ok) {
@@ -52,8 +52,11 @@ export async function GET() {
 
         allNFTsForWallet = [...allNFTsForWallet, ...filteredNFTs];
         nextCursor = data.next;
+
+        console.log(`Wallet ${walletAddress} - Page ${pageCount}: Got ${data.nfts.length} NFTs (${filteredNFTs.length} from collection), Total so far: ${allNFTsForWallet.length}, Has more: ${!!nextCursor}`);
       } while (nextCursor);
 
+      console.log(`Wallet ${walletAddress} - Final total: ${allNFTsForWallet.length} NFTs from collection`);
       return allNFTsForWallet;
     });
 
@@ -95,6 +98,8 @@ export async function GET() {
         const bId = parseInt(b.identifier);
         return aId - bId;
       });
+
+    console.log(`Final response: ${filteredNFTs.length} NFTs total`);
 
     return NextResponse.json({ nfts: filteredNFTs });
   } catch (error) {
