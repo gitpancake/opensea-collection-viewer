@@ -46,7 +46,27 @@ export async function GET() {
     const results = await Promise.all(fetchPromises);
 
     // Combine all NFTs from both wallets
-    const allNFTs = results.flat();
+    let allNFTs = results.flat();
+
+    // If no NFTs found in wallets, fallback to fetching from contract
+    if (allNFTs.length === 0) {
+      const contractUrl = `https://api.opensea.io/api/v2/chain/${CHAIN}/contract/${CONTRACT_ADDRESS}/nfts?limit=50`;
+
+      const contractResponse = await fetch(contractUrl, {
+        headers: {
+          'X-API-KEY': apiKey,
+          'Accept': 'application/json',
+        },
+        next: {
+          revalidate: 3600,
+        },
+      });
+
+      if (contractResponse.ok) {
+        const contractData: OpenSeaResponse = await contractResponse.json();
+        allNFTs = contractData.nfts;
+      }
+    }
 
     // Remove duplicates by identifier (in case same NFT appears in multiple wallets somehow)
     const uniqueNFTs = Array.from(
