@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'nft-cdn.alchemy.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'i2.seadn.io',
       },
       {
